@@ -1,0 +1,52 @@
+{% load static %}
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script type="text/javascript" src="https://d3js.org/d3.v3.js"></script>
+    <script src='https://unpkg.com/panzoom@9.4.0/dist/panzoom.min.js'></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <link href="{% static 'style.css' %}" rel="stylesheet" type="text/css">
+    <script src="{% static 'jquery.min.js' %}"></script>
+    <script src="{% static 'tree.jquery.js' %}"></script>
+
+    <script src="{% static 'filter_search.js' %}"></script>
+    <link rel="stylesheet" href="{% static 'jqtree.css' %}">
+</head>
+<body>
+
+<div class="navbar">
+    <a class="project" onclick="complete_graphf()">GraphIt</a>
+    <div class="dropdown">
+        <button class="dropbtn">Source
+            <i class="fa fa-caret-down"></i>
+        </button>
+        <div class="dropdown-content">
+            <a href="{% url 'data_plugin' id="karate_loader" %}">Karate load</a>
+        </div>
+    </div>
+    <div class="dropdown">
+        <button class="dropbtn">Visualization
+            <i class="fa fa-caret-down"></i>
+        </button>
+        <div class="dropdown-content">
+            <a href="{% url 'view_plugin' id="class_view_loader" %}">Complex</a>
+        </div>
+    </div>
+    <input type="button" name="OK" value="OK" class="OK" onclick="searchf()">
+    <input type="text" placeholder="Search.." class="search" id="search">
+    <input type="button" name="FILTER" value="OK" class="FILTER" onclick="filterf()">
+    <input type="text" placeholder="Filter.." class="filter" id="filter">
+</div>
+
+<div class="row">
+    <div class="column1">
+        {% block tree_view %}{% endblock %}
+    </div>
+    <div class="column2" id="column2">
+        {% block graph_view %}{% endblock %}
+    </div>
+</div>
+
+</body>
+</html>
