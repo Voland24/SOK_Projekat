@@ -19,7 +19,7 @@ def load_data(request, id: str):
     
     for plugin in plugins:
         if plugin.identification() == id:
-            graph = plugin.load_data("C:\FAKS\MASTER\SOK\SOK_Expresivnes\KarateDataset\\")
+            graph = plugin.load_data("C:\FAKS\MASTER\Predaja_SOK\SOK_Projekat\KarateDataset\\")
             jsonStr = json.dumps(graph.__dict__)
             request.session['complete_graph'] = jsonStr
             request.session['graph'] = jsonStr
