@@ -1,0 +1,210 @@
+{% extends "index.html" %} 
+{% block tree_view %}
+<div id="tree1"></div>
+<script>
+  var graph = {{ tree_json|safe }};
+
+  $('#tree1').tree({
+      data: graph.roots
+  });
+
+  $('#tree1').on(
+      'tree.select',
+      function (event) {
+          var node = event.node;
+          // Fixes the bug of program appending same children multiple times
+          // upon multiple clicks
+
+          // TODO: kod za selektovanje
+          //alert(node.id);
+          //window.selected_node_id = node.id;
+          try {
+              deselect_in_graph();
+          } catch (err) {
+              console.log("nema grafa nacrtanog jos - deselect");
+          }
+          deselect_previous_node();
+
+          select_the_node(node.id);
+          try {
+              select_in_graph();
+          } catch (err) {
+              console.log("nema grafa nacrtanog jos - select");
+          }
+
+          if (node.clicked === 'true')
+              return;
+          node.clicked = 'true';
+          var linked_nodes_string = '';
+          for (var linked_node_id of node.linked_nodes) {
+              var linked_node = getNodeById(linked_node_id);
+              $('#tree1').tree(
+                  'appendNode',
+                  {
+                      name: linked_node.name,
+                      id: linked_node.id,
+                      linked_nodes: JSON.parse(JSON.stringify(linked_node.linked_nodes))
+                  },
+                  node
+              );
+              linked_nodes_string += (linked_node.name + '\n');
+          }
+      }
+  );
+
+  function getNodeById(id) {
+      for (var node of graph.data) {
+          if (node.id === id)
+              return node;
+      }
+  }
+</script>
+{% endblock tree_view %} 
+{% block graph_view %}
+<div id="bigDisplay">
+  <svg class="svgClass">
+    <g id="ceoGraf" class="graphy"></g>
+  </svg>
+</div>
+<div id="birdDisplay"></div>
+
+<div id="myModal" class="modal">
+  <!-- Modal content -->
+  <div class="modal-content">
+    <span id="cls" class="close">&times;</span>
+    <h3>Details</h3>
+    <p id="nodeInfo"></p>
+  </div>
+</div>
+<script>
+
+  var nodes = {
+      {% for key, value in cvorovi.items %}
+          "{{ key|safe }}": {
+              id: "{{ key|safe }}",
+              element: {{ value|safe }},
+          },
+      {% endfor %}
+  };
+
+  var links = [
+      {% for gr in grane %}
+          {
+              {% with gr.0 as src %} source: "{{ src.id }}"{% endwith %},
+              {% with gr.1 as tar %} target: "{{ tar.id }}"{% endwith %},
+          },
+      {% endfor %}
+  ];
+
+  get_info = function (node_id) {
+      let s = "";
+      for (i in nodes[node_id].element) {
+          s += i + ": " + nodes[node_id].element[i] + "</br>";
+      }
+      return s;
+  };
+
+  select_the_node = function (node_id) {
+      //window.selected_node = d;
+      window.selected_node_id = node_id;
+      var info = get_info(node_id);
+      document.getElementById("nodeInfo").innerHTML = info;
+      var modal = document.getElementById("myModal");
+      modal.style.display = "block";
+      //document.getElementById("nodeInfo");
+  };
+
+  deselect_previous_node = function () {
+      //window.selected_node = null;
+      window.selected_node_id = "";
+      var modal = document.getElementById("myModal");
+      modal.style.display = "none";
+  };
+
+  select_in_tree = function () {
+      //var node = event.node;
+      //const event = new MouseEvent('click', {
+      //    view: window,
+      //    bubbles: true,
+      //    cancelable: true
+      //  });
+      let n = $('#tree1').tree('getNodeById', window.selected_node_id);
+      $('#tree1').tree('selectNode', n);
+      //n.dispatchEvent(event);
+  };
+
+  deselect_in_tree = function () {
+      //var node = event.node;
+      //document.getElementById(window.selected_node_id).click();
+      //let n = $('#tree1').tree('getNodeById', window.selected_node_id);
+      $('#tree1').tree('selectNode', null);
+  };
+
+  window.onclick = function (event) {
+      if (event.target == document.getElementById("cls")) {
+          var modal = document.getElementById("myModal");
+          modal.style.display = "none";
+      }
+  };
+
+
+  {% if code %}
+      {{ code|safe }}
+
+      display_graph(nodes, links);
+
+      var element = document.getElementById("ceoGraf");
+      var svg_node = d3.select('#bigDisplay').node();
+
+      // And pass it to panzoom
+      var instance = panzoom(element, {
+          initialX: svg_node.getBoundingClientRect().width / 2,
+          initialY: svg_node.getBoundingClientRect().height / 2,
+          initialZoom: 0.2,
+          onDoubleClick: function (e) {
+              return false;
+          },
+          // filterKey: function(/* e, dx, dy, dz */) {
+          // // don't let panzoom handle this event:
+          //     if (selected_node || selected_link) {
+          //         return true;
+          //     }
+          // }
+          beforeMouseDown: function (e) {
+              // allow mouse-down panning only if altKey is down. Otherwise - ignore
+              var shouldIgnore = !e.altKey;
+              return shouldIgnore;
+          },
+      });
+
+      d3.selectAll(".node").on("dblclick", function (d) {
+          d3.event.stopImmediatePropagation();
+          deselect_in_graph();
+          deselect_previous_node();
+          select_the_node(d.id);
+          select_in_graph();
+          select_in_tree();
+          //alert(window.selected_node_id);
+      });
+
+      d3.select(".column2").selectAll("*:not(.node)").on("dblclick", function (d) {
+          deselect_in_graph();
+          deselect_in_tree();
+          deselect_previous_node();
+          //alert(window.selected_node_id);
+      });
+
+      d3.select(".column1").on("dblclick", function (d) {
+          deselect_in_graph();
+          deselect_in_tree();
+          deselect_previous_node();
+          //alert(window.selected_node_id);
+      });
+
+      $('#birdDisplay').html($('#bigDisplay').html());
+      var gr = $('#birdDisplay .graphy');
+      gr.attr('transform', 'matrix(0.02 0 0 0.02 100 100)');
+
+  {% endif %}
+</script>
+{% endblock graph_view %}
